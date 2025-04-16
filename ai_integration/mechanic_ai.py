@@ -152,19 +152,21 @@ Keep your responses concise, practical, and actionable. Use a friendly, professi
     if not gemini_api_key:
         raise Exception("GEMINI_API_KEY environment variable not set.")
     
-    client = genai.Client(api_key=gemini_api_key)
-    config = types.GenerateContentConfig(
-        max_output_tokens=600,
-        temperature=0.2,
+    # Configure Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up model with generation config
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 600,
+            "temperature": 0.2,
+        },
         system_instruction=system_instruction
     )
     
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[prompt],
-            config=config
-        )
+        response = model.generate_content(prompt)
         return response.text
     except Exception as e:
         print(f"Error generating AI response: {e}")

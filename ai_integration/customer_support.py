@@ -1,7 +1,6 @@
 # backend/ai_integration/customer_support.py
 import os
 import google.generativeai as genai
-from google.generativeai import types
 import dotenv
 from typing import List  # <-- Add this import
 dotenv.load_dotenv()
@@ -28,15 +27,19 @@ def get_support_response(conversation_history: List[str]) -> str:  # <-- Change 
         "Provide a helpful, context-aware response that addresses the customer's situation."
     )
     
-    client = genai.Client(api_key=gemini_api_key)
-    config = types.GenerateContentConfig(
-        max_output_tokens=600,
-        temperature=0.2,
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up the model with generation configuration
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 600,
+            "temperature": 0.2,
+        },
         system_instruction=system_instruction
     )
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[prompt],
-        config=config
-    )
+    
+    # Generate the response
+    response = model.generate_content(prompt)
     return response.text

@@ -1,9 +1,9 @@
 # backend/ai_integration/chatbot_booking.py
 import os
 import google.generativeai as genai
-from google.generativeai import types
 import dotenv
 from typing import List  # <-- Already present, just ensure it's there
+dotenv.load_dotenv()
 
 def booking_chat_response(message: str, conversation_history: List[str] = None) -> str:  # <-- Already correct
     """
@@ -35,15 +35,19 @@ def booking_chat_response(message: str, conversation_history: List[str] = None) 
     # Combine context and current message.
     prompt_message = context + "Customer: " + message + "\nAssistant:"
     
-    client = genai.Client(api_key=gemini_api_key)
-    config = types.GenerateContentConfig(
-        max_output_tokens=500,
-        temperature=0.15,
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up the model with generation configuration
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 500,
+            "temperature": 0.15,
+        },
         system_instruction=system_instruction
     )
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[prompt_message],
-        config=config
-    )
+    
+    # Generate the response
+    response = model.generate_content(prompt_message)
     return response.text

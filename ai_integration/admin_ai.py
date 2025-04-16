@@ -1,7 +1,6 @@
 # backend/ai_integration/admin_ai.py
 import os
 import google.generativeai as genai
-from google.generativeai import types
 import json
 import dotenv
 dotenv.load_dotenv()
@@ -32,15 +31,19 @@ def get_admin_recommendations(financial_data: dict) -> str:
         "Offer clear insights and recommendations based on the provided data."
     )
     
-    client = genai.Client(api_key=gemini_api_key)
-    config = types.GenerateContentConfig(
-        max_output_tokens=600,
-        temperature=0.2,
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up the model with generation configuration
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 600,
+            "temperature": 0.2,
+        },
         system_instruction=system_instruction
     )
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[prompt],
-        config=config
-    )
+    
+    # Generate the response
+    response = model.generate_content(prompt)
     return response.text

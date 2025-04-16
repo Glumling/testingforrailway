@@ -1,59 +1,86 @@
 # backend/ai_integration/chatbot.py
 import os
 import google.generativeai as genai
-from google.generativeai import types
 import dotenv
+from typing import List, Optional
 dotenv.load_dotenv()
 
-def get_chat_response(message: str, system_instruction: str = None) -> str:
+def get_chat_response(message: str, conversation_history: List[str] = None) -> str:
     """
-    Uses the Gemini API to generate a text response for a given message.
+    Generates a text response using the Gemini API.
     
-    Make sure you have set the GEMINI_API_KEY environment variable to your Gemini API key.
+    Parameters:
+      - message: The text prompt to send to Gemini.
+      - conversation_history: (Optional) A list of previous messages to provide context.
+    
+    Returns:
+      - A text response from the AI.
     """
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key:
         raise Exception("GEMINI_API_KEY environment variable not set.")
-
-    client = genai.Client(api_key=gemini_api_key)
     
-    # Configure generation parameters; adjust values as needed.
-    config = types.GenerateContentConfig(
-        max_output_tokens=500,
-        temperature=0.1,
-        system_instruction=system_instruction  # Optional: System instructions to steer behavior.
+    # Build the conversation context (if any)
+    context = ""
+    if conversation_history:
+        context = "\n".join(conversation_history) + "\n"
+    
+    # Combine context and current message
+    prompt_message = context + "User: " + message + "\nAI:"
+    
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up the model with generation configuration
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 600,
+            "temperature": 0.2,
+        }
     )
     
-    # Generate text output from the Gemini API.
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",  # You can change this to whichever Gemini model is appropriate.
-        contents=[message],
-        config=config
-    )
-    
+    # Generate the response
+    response = model.generate_content(prompt_message)
     return response.text
 
-# Optional: If you want to support streaming responses, you can add a similar function:
-def get_chat_response_stream(message: str, system_instruction: str = None) -> str:
+def get_streaming_response(message: str, conversation_history: Optional[List[str]] = None):
+    """
+    Generates a streaming response using the Gemini API.
+    
+    Parameters:
+      - message: The text prompt to send to Gemini.
+      - conversation_history: (Optional) A list of previous messages to provide context.
+    
+    Returns:
+      - A generator that yields parts of the response as they become available.
+    """
     gemini_api_key = os.getenv("GEMINI_API_KEY")
     if not gemini_api_key:
         raise Exception("GEMINI_API_KEY environment variable not set.")
-
-    client = genai.Client(api_key=gemini_api_key)
-    config = types.GenerateContentConfig(
-        max_output_tokens=500,
-        temperature=0.1,
-        system_instruction=system_instruction
+    
+    # Build the conversation context (if any)
+    context = ""
+    if conversation_history:
+        context = "\n".join(conversation_history) + "\n"
+    
+    # Combine context and current message
+    prompt_message = context + "User: " + message + "\nAI:"
+    
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
+    
+    # Set up the model with generation configuration
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-pro",
+        generation_config={
+            "max_output_tokens": 600,
+            "temperature": 0.2,
+        }
     )
     
-    response_stream = client.models.generate_content_stream(
-        model="gemini-2.0-flash",
-        contents=[message],
-        config=config
-    )
-    
-    # Concatenate all streamed chunks.
-    result_text = ""
-    for chunk in response_stream:
-        result_text += chunk.text
-    return result_text
+    # Generate the streaming response
+    response = model.generate_content(prompt_message, stream=True)
+    for chunk in response:
+        if chunk.text:
+            yield chunk.text
