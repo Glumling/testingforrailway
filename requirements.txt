@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+google-cloud-vision
+google-generativeai
+Pillow
+supabase  # Ensure you have the supabase-py client installed
+python-dotenv
+python-multipart
