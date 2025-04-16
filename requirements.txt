@@ -1,9 +1,13 @@
-fastapi
-uvicorn
-pydantic
-google-cloud-vision
-google-generativeai
-Pillow
-supabase  # Ensure you have the supabase-py client installed
-python-dotenv
-python-multipart
+fastapi>=0.100.0
+uvicorn>=0.23.0
+gunicorn>=21.2.0
+pydantic>=2.1.0
+google-cloud-vision>=3.4.0
+google-generativeai>=0.3.0
+Pillow>=10.0.0
+supabase>=1.0.3
+python-dotenv>=1.0.0
+python-multipart>=0.0.6
+requests>=2.31.0
+httpx>=0.24.1
+jinja2>=3.1.2
