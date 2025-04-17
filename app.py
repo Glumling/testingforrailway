@@ -3,7 +3,7 @@ import logging
 import dotenv
 dotenv.load_dotenv()
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Request, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Query, Request, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -15,7 +15,7 @@ from ai_integration.google_ai import analyze_image
 from ai_integration.admin_ai import get_admin_recommendations
 from ai_integration.mechanic_ai import get_mechanic_recommendations
 from ai_integration.repair_assistant import get_repair_advice
-from ai_integration.search import search_mechanics
+from ai_integration.search import search_mechanics, nearby_mechanics
 from ai_integration.booking import create_booking, update_booking_status, get_booking_details
 from ai_integration.chatbot_booking import booking_chat_response
 from ai_integration.customer_support import get_support_response
@@ -189,6 +189,28 @@ async def search_mechanics_endpoint(
         logger.error(f"Search mechanics error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
 
+# Add this new endpoint after the search-mechanics endpoint
+@app.get("/nearby-mechanics")
+async def nearby_mechanics_endpoint(
+    latitude: float = Query(..., description="User's latitude"),
+    longitude: float = Query(..., description="User's longitude"),
+    radius: float = Query(10.0, description="Search radius in kilometers"),
+    specialty: Optional[str] = Query(None, description="Filter by specialty")
+):
+    """Search for mechanics near a given location"""
+    try:
+        logger.info(f"Nearby mechanics search: lat={latitude}, lng={longitude}, radius={radius}km")
+        mechanics = nearby_mechanics(
+            latitude=latitude,
+            longitude=longitude,
+            radius=radius,
+            specialty=specialty
+        )
+        return {"mechanics": mechanics}
+    except Exception as e:
+        logger.error(f"Nearby mechanics search error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
+
 # ---- Booking Endpoints ----
 class CreateBookingRequest(BaseModel):
     user_id: str
@@ -348,6 +370,63 @@ async def update_customer_profile_endpoint(req: CustomerProfileUpdateRequest):
         return {"profile": updated_profile}
     except Exception as e:
         logger.error(f"Update customer profile error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Profile update error: {str(e)}")
+
+# Add this new endpoint after the customer profile endpoints
+@app.get("/profile/{user_id}")
+async def get_user_profile_endpoint(user_id: str):
+    """Get a user's profile based on their ID (works for both mechanics and customers)"""
+    try:
+        logger.info(f"Get user profile: id={user_id}")
+        
+        # First try to check if this is a mechanic profile
+        try:
+            profile = get_mechanic_profile(user_id)
+            logger.info(f"Found mechanic profile for user {user_id}")
+            return {"profile": profile, "role": "mechanic"}
+        except Exception as mechanic_error:
+            logger.info(f"No mechanic profile found, trying customer profile: {str(mechanic_error)}")
+            
+            # If mechanic profile not found, try customer profile
+            try:
+                profile = get_customer_profile(user_id)
+                logger.info(f"Found customer profile for user {user_id}")
+                return {"profile": profile, "role": "customer"}
+            except Exception as customer_error:
+                logger.error(f"No profile found for user {user_id}: {str(customer_error)}")
+                raise HTTPException(status_code=404, detail=f"No profile found for user {user_id}")
+    
+    except Exception as e:
+        logger.error(f"Get user profile error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Profile retrieval error: {str(e)}")
+
+# Add this endpoint for updating profiles in a unified way
+@app.put("/profile")
+async def update_user_profile_endpoint(
+    user_id: str = Body(..., description="The user ID to update"),
+    role: str = Body(..., description="The user's role (mechanic or customer)"),
+    profile_data: Dict[str, Any] = Body(..., description="The profile data to update")
+):
+    """Update a user's profile based on their role"""
+    try:
+        logger.info(f"Update profile: id={user_id}, role={role}")
+        
+        # Remove user_id from profile data since it's passed separately
+        profile_data = {k: v for k, v in profile_data.items() if k != "user_id"}
+        
+        if role.lower() == "mechanic":
+            updated_profile = update_mechanic_profile(user_id, profile_data)
+            return {"profile": updated_profile, "role": "mechanic"}
+        
+        elif role.lower() == "customer":
+            updated_profile = update_customer_profile(user_id, profile_data)
+            return {"profile": updated_profile, "role": "customer"}
+        
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
+            
+    except Exception as e:
+        logger.error(f"Update profile error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Profile update error: {str(e)}")
 
 # Server startup for local development
