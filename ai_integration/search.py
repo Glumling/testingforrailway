@@ -79,9 +79,11 @@ def nearby_mechanics(
     try:
         # Include users table to get full_name
         query = supabase.table("mechanic_profiles")\
-            .select("*,users(full_name,id,email)")\
-            .not_("current_latitude", "is", "null")\
-            .not_("current_longitude", "is", "null")
+            .select("*,users(full_name,id,email)")
+        
+        # Filter out null coordinates - using neq instead of not_
+        query = query.neq("current_latitude", None)
+        query = query.neq("current_longitude", None)
         
         if specialty:
             query = query.ilike("specialties", f"%{specialty}%")
