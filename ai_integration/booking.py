@@ -8,11 +8,11 @@ dotenv.load_dotenv()
 
 # Initialize Supabase client using environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("Supabase credentials not set in environment variables.")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY") # Use ANON key
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    raise Exception("Supabase credentials (URL and ANON KEY) not set in environment variables.")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def is_mechanic_available(mechanic_id: str, booking_time: datetime.datetime, service_duration: int) -> bool:
     """

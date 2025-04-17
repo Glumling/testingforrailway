@@ -9,12 +9,12 @@ import json
 
 # Get Supabase configuration from environment variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("Supabase credentials not set in environment variables.")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY") # Use ANON key
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    raise Exception("Supabase credentials (URL and ANON KEY) not set in environment variables.")
 
-# Create Supabase client with proper authentication
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Create Supabase client with proper authentication using ANON key
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def search_mechanics(
     specialty: str = None,
@@ -83,7 +83,7 @@ def nearby_mechanics(
     """
     # First, get all mechanic profiles with lat/lng coordinates
     try:
-        print(f"Using Supabase URL: {SUPABASE_URL[:20]}... with key starting with: {SUPABASE_KEY[:10]}...")
+        print(f"Using Supabase URL: {SUPABASE_URL[:20]}... with key starting with: {SUPABASE_ANON_KEY[:10]}...")
         
         # Include users table to get full_name
         # First attempt to get all mechanics and filter locally if the query is failing

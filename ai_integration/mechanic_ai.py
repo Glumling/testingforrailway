@@ -9,10 +9,10 @@ dotenv.load_dotenv()
 
 # Initialize Supabase client (ensure these env variables are set)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("Supabase credentials not set.")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY") # Use ANON key
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    raise Exception("Supabase credentials (URL and ANON KEY) not set.")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 def get_mechanic_data(mechanic_id: str) -> dict:
     """
@@ -20,7 +20,7 @@ def get_mechanic_data(mechanic_id: str) -> dict:
     """
     try:
         print(f"Attempting to fetch mechanic data for ID: {mechanic_id}")
-        print(f"Using Supabase URL: {SUPABASE_URL[:20]}... with key starting with: {SUPABASE_KEY[:10]}...")
+        print(f"Using Supabase URL: {SUPABASE_URL[:20]}... with key starting with: {SUPABASE_ANON_KEY[:10]}...")
         
         # First try mechanic_profiles table
         response = supabase.table("mechanic_profiles").select("*").eq("user_id", mechanic_id).execute()
