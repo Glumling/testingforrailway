@@ -92,9 +92,9 @@ def nearby_mechanics(
         # Execute the query
         result = query.execute()
         
-        if result.error:
-            raise Exception(f"Database query failed: {result.error.message}")
-            
+        # The execute() method raises an exception on error, so we don't need result.error
+        # If the code reaches here, the query was successful at the HTTP level.
+        
         mechanics = result.data if result.data else []
         print(f"Found {len(mechanics)} total mechanics in database")
         
@@ -151,43 +151,12 @@ def nearby_mechanics(
         nearby_results.sort(key=lambda x: x['distance'])
         print(f"Found {len(nearby_results)} mechanics within {radius}km radius")
         
-        # If we have no results, include at least one mock mechanic for demo purposes
-        if len(nearby_results) == 0:
-            print("No mechanics found in radius, adding a mock mechanic for demo")
-            mock_mechanic = {
-                "id": "mock-id-1",
-                "user_id": "mock-user-1",
-                "full_name": "John Smith",
-                "specialty": "Engine Repair",
-                "specialties": ["Engine Repair", "Brake Service"],
-                "hourly_rate": 85,
-                "years_experience": 5,
-                "rating": 4.7,
-                "bio": "Experienced mechanic with specialization in engine repair and diagnostics.",
-                "current_latitude": latitude + 0.01,  # Just a bit north
-                "current_longitude": longitude + 0.01,  # Just a bit east
-                "distance": 1.5  # 1.5km away
-            }
-            nearby_results.append(mock_mechanic)
-        
+        # NO MOCK DATA - Return empty list if no real results
         # Limit results
         return nearby_results[:limit]
     
     except Exception as e:
+        # This will catch errors during execute() or subsequent processing
         print(f"Error in nearby_mechanics: {str(e)}")
-        # Return mock data as a fallback to ensure the app functions
-        mock_mechanic = {
-            "id": "mock-id-1",
-            "user_id": "mock-user-1",
-            "full_name": "John Smith",
-            "specialty": "Engine Repair",
-            "specialties": ["Engine Repair", "Brake Service"],
-            "hourly_rate": 85,
-            "years_experience": 5,
-            "rating": 4.7,
-            "bio": "Experienced mechanic with specialization in engine repair and diagnostics.",
-            "current_latitude": latitude + 0.01,
-            "current_longitude": longitude + 0.01,
-            "distance": 1.5
-        }
-        return [mock_mechanic]
+        # Return empty list on error, no mock data
+        return []
