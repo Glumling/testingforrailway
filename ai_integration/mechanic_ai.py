@@ -19,14 +19,30 @@ def get_mechanic_data(mechanic_id: str) -> dict:
     Retrieves mechanic data from the Supabase database.
     """
     try:
+        print(f"Attempting to fetch mechanic data for ID: {mechanic_id}")
+        print(f"Using Supabase URL: {SUPABASE_URL[:20]}... with key starting with: {SUPABASE_KEY[:10]}...")
+        
         # First try mechanic_profiles table
         response = supabase.table("mechanic_profiles").select("*").eq("user_id", mechanic_id).execute()
+        
+        if response.error:
+            print(f"Supabase query error: {response.error.message}")
+            raise Exception(f"Database error: {response.error.message}")
+            
         if response.data and len(response.data) > 0:
+            print(f"Found mechanic profile in mechanic_profiles table")
             return response.data[0]
         
         # If not found, try mechanics table as fallback
+        print(f"No profile found in mechanic_profiles, trying mechanics table")
         response = supabase.table("mechanics").select("*").eq("id", mechanic_id).execute()
+        
+        if response.error:
+            print(f"Supabase query error on mechanics table: {response.error.message}")
+            raise Exception(f"Database error: {response.error.message}")
+            
         if not response.data or len(response.data) == 0:
+            print(f"No mechanic found with ID {mechanic_id}, returning mock data")
             # Return a default profile for demo purposes
             return {
                 "id": mechanic_id,
@@ -42,6 +58,7 @@ def get_mechanic_data(mechanic_id: str) -> dict:
                     "response_time_min": 28
                 }
             }
+        print(f"Found mechanic in mechanics table")
         return response.data[0]
     except Exception as e:
         print(f"Error retrieving mechanic data: {e}")
