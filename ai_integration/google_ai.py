@@ -3,7 +3,6 @@ import os
 from io import BytesIO
 import PIL.Image
 import google.generativeai as genai
-from google.generativeai import types
 import dotenv
 dotenv.load_dotenv()
 
@@ -24,7 +23,8 @@ def analyze_image(file_content: bytes, action: str = "caption") -> str:
     if not gemini_api_key:
         raise Exception("GEMINI_API_KEY environment variable is not set.")
 
-    client = genai.Client(api_key=gemini_api_key)
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
     
     # Use the file content to open an image using Pillow.
     image = PIL.Image.open(BytesIO(file_content))
@@ -32,21 +32,28 @@ def analyze_image(file_content: bytes, action: str = "caption") -> str:
     # Set the prompt and the model based on the action.
     if action == "caption":
         prompt = "Provide a caption and a detailed description of this image."
-        # Use a model that supports multimodal input (e.g., gemini-2.0-flash-exp)
-        model_name = "gemini-2.0-flash-exp"
+        # Use a model that supports multimodal input
+        model_name = "gemini-1.5-pro"
     elif action == "bbox":
         prompt = ("Return a bounding box for each of the objects in this image "
                   "in [ymin, xmin, ymax, xmax] format with values normalized to a 1000x1000 scale.")
-        # Use a model known for object localization. You may adjust this to your needs.
+        # Use a model known for object localization
         model_name = "gemini-1.5-pro"
     else:
         # Default to caption if an unsupported action is provided.
         prompt = "Provide a caption and a detailed description of this image."
-        model_name = "gemini-2.0-flash-exp"
+        model_name = "gemini-1.5-pro"
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=[image, prompt]
+    # Create a model with multimodal capabilities
+    model = genai.GenerativeModel(
+        model_name=model_name,
+        generation_config={
+            "max_output_tokens": 800,
+            "temperature": 0.2,
+        }
     )
+    
+    # Generate content with the image and prompt
+    response = model.generate_content([image, prompt])
     
     return response.text

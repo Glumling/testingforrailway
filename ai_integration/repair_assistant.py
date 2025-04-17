@@ -1,7 +1,6 @@
 # backend/ai_integration/repair_assistant.py
 import os
 import google.generativeai as genai
-from google.generativeai import types
 import base64
 from io import BytesIO
 import PIL.Image
@@ -24,7 +23,8 @@ def get_repair_advice(mechanic_id: str, query: str, image_data: str = None) -> s
     if not gemini_api_key:
         raise Exception("GEMINI_API_KEY environment variable not set.")
     
-    client = genai.Client(api_key=gemini_api_key)
+    # Configure the Gemini API
+    genai.configure(api_key=gemini_api_key)
     
     # Set a specialized system instruction for automotive repair assistance
     system_instruction = """
@@ -41,6 +41,9 @@ def get_repair_advice(mechanic_id: str, query: str, image_data: str = None) -> s
     insufficient for a definitive diagnosis, ask for specific symptoms, codes, or test results.
     """
     
+    # Determine which model to use based on whether an image is provided
+    model_name = "gemini-1.5-flash" if not image_data else "gemini-1.5-pro"
+    
     # Check if an image was provided
     if image_data:
         try:
@@ -48,40 +51,41 @@ def get_repair_advice(mechanic_id: str, query: str, image_data: str = None) -> s
             image_bytes = base64.b64decode(image_data.split(',')[1] if ',' in image_data else image_data)
             image = PIL.Image.open(BytesIO(image_bytes))
             
-            # For multimodal input (text + image), use a model that supports it
-            prompt = f"I need help with this automotive repair issue: {query}"
-            
-            response = client.models.generate_content(
-                model="gemini-2.0-flash-exp",  # Using a model with multimodal capabilities
-                contents=[prompt, image],
-                generation_config=types.GenerateContentConfig(
-                    max_output_tokens=800,
-                    temperature=0.2,
-                    system_instruction=system_instruction
-                )
+            # Create a model with multimodal capabilities
+            model = genai.GenerativeModel(
+                model_name=model_name,
+                generation_config={
+                    "max_output_tokens": 800,
+                    "temperature": 0.2,
+                },
+                system_instruction=system_instruction
             )
+            
+            # For multimodal input (text + image)
+            prompt = f"I need help with this automotive repair issue: {query}"
+            response = model.generate_content([prompt, image])
         except Exception as e:
             print(f"Error processing image: {e}")
             # Fall back to text-only if image processing fails
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=[f"I need help with this automotive repair issue: {query}"],
-                generation_config=types.GenerateContentConfig(
-                    max_output_tokens=800,
-                    temperature=0.2,
-                    system_instruction=system_instruction
-                )
-            )
-    else:
-        # Text-only query
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[f"I need help with this automotive repair issue: {query}"],
-            generation_config=types.GenerateContentConfig(
-                max_output_tokens=800,
-                temperature=0.2,
+            model = genai.GenerativeModel(
+                model_name="gemini-1.5-flash",
+                generation_config={
+                    "max_output_tokens": 800,
+                    "temperature": 0.2,
+                },
                 system_instruction=system_instruction
             )
+            response = model.generate_content(f"I need help with this automotive repair issue: {query}")
+    else:
+        # Text-only query
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config={
+                "max_output_tokens": 800,
+                "temperature": 0.2,
+            },
+            system_instruction=system_instruction
         )
+        response = model.generate_content(f"I need help with this automotive repair issue: {query}")
     
     return response.text 
