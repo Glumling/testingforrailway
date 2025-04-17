@@ -5,7 +5,7 @@ import dotenv
 from typing import List, Optional
 dotenv.load_dotenv()
 
-def get_chat_response(message: str, conversation_history: List[str] = None) -> str:
+def get_chat_response(message: str, conversation_history: Optional[List[str]] = None) -> str:
     """
     Generates a text response using the Gemini API.
     
@@ -22,8 +22,11 @@ def get_chat_response(message: str, conversation_history: List[str] = None) -> s
     
     # Build the conversation context (if any)
     context = ""
-    if conversation_history:
+    if conversation_history and len(conversation_history) > 0:
         context = "\n".join(conversation_history) + "\n"
+    
+    # System instruction for automotive context
+    system_instruction = "You are an AI assistant for a mobile mechanic service. Answer concisely and accurately about car repairs, mechanic services, and related topics."
     
     # Combine context and current message
     prompt_message = context + "User: " + message + "\nAI:"
@@ -37,7 +40,8 @@ def get_chat_response(message: str, conversation_history: List[str] = None) -> s
         generation_config={
             "max_output_tokens": 600,
             "temperature": 0.2,
-        }
+        },
+        system_instruction=system_instruction
     )
     
     # Generate the response

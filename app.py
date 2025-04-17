@@ -79,6 +79,7 @@ async def root():
 # ---- Chat Endpoint ----
 class ChatRequest(BaseModel):
     message: str
+    conversation_history: Optional[List[str]] = None
 
 class ChatResponse(BaseModel):
     response: str
@@ -89,7 +90,7 @@ async def chat_endpoint(chat_req: ChatRequest):
     try:
         logger.info(f"Chat request: {chat_req.message[:50]}...")
         system_instruction = "You are an AI assistant for a mobile mechanic service. Answer concisely and accurately about car repairs, mechanic services, and related topics."
-        response_text = get_chat_response(chat_req.message, system_instruction)
+        response_text = get_chat_response(chat_req.message, chat_req.conversation_history)
         logger.info(f"Chat response generated: {len(response_text)} chars")
         return ChatResponse(response=response_text)
     except Exception as e:
